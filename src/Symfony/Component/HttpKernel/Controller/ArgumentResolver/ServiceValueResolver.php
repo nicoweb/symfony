@@ -44,6 +44,8 @@ final class ServiceValueResolver implements ArgumentValueResolverInterface
             return false;
         }
 
+        $controller = $this->normalizeMethod($controller);
+
         if ('\\' === $controller[0]) {
             $controller = ltrim($controller, '\\');
         }
@@ -59,10 +61,11 @@ final class ServiceValueResolver implements ArgumentValueResolverInterface
         if (\is_array($controller = $request->attributes->get('_controller'))) {
             $controller = $controller[0].'::'.$controller[1];
         }
-
         if ('\\' === $controller[0]) {
             $controller = ltrim($controller, '\\');
         }
+
+        $controller = $this->normalizeMethod($controller);
 
         try {
             yield $this->container->get($controller)->get($argument->getName());
@@ -80,5 +83,23 @@ final class ServiceValueResolver implements ArgumentValueResolverInterface
 
             throw $e;
         }
+    }
+
+    private function normalizeMethod(string $controller): string
+    {
+        $controllerSplitted = preg_split('/::|:/', $controller);
+        $methodKey = $this->getMethodKey($controllerSplitted);
+        $controllerSplitted[$methodKey] = strtolower($controllerSplitted[$methodKey]);
+
+        return implode('::', $controllerSplitted);
+    }
+
+    private function getMethodKey(array $controllerSplitted)
+    {
+        if (!\is_array($controllerSplitted) || empty($controllerSplitted)) {
+            return null;
+        }
+
+        return array_keys($controllerSplitted)[\count($controllerSplitted) - 1];
     }
 }
