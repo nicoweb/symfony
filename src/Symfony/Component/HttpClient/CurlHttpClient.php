@@ -48,12 +48,13 @@ final class CurlHttpClient implements HttpClientInterface
         }
 
         $mh = curl_multi_init();
+        $this->defaultOptions['timeout'] = (float) ($this->defaultOptions['timeout'] ?? ini_get('default_socket_timeout'));
 
         // Don't enable HTTP/1.1 pipelining: it forces responses to be sent in order
         if (\defined('CURLPIPE_MULTIPLEX')) {
             curl_multi_setopt($mh, CURLMOPT_PIPELINING, CURLPIPE_MULTIPLEX);
         }
-        curl_multi_setopt($mh, CURLMOPT_MAX_HOST_CONNECTIONS, $maxHostConnections);
+        curl_multi_setopt($mh, CURLMOPT_MAX_HOST_CONNECTIONS, 0 < $maxHostConnections ? $maxHostConnections : PHP_INT_MAX);
 
         // Use an internal stdClass object to share state between the client and its responses
         $this->multi = $multi = (object) [

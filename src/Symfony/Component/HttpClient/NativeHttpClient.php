@@ -47,12 +47,14 @@ final class NativeHttpClient implements HttpClientInterface
             [, $this->defaultOptions] = self::prepareRequest(null, null, $defaultOptions, self::OPTIONS_DEFAULTS);
         }
 
+        $this->defaultOptions['timeout'] = (float) ($this->defaultOptions['timeout'] ?? ini_get('default_socket_timeout'));
+
         // Use an internal stdClass object to share state between the client and its responses
         $this->multi = (object) [
             'openHandles' => [],
             'handlesActivity' => [],
             'pendingResponses' => [],
-            'maxHostConnections' => $maxHostConnections,
+            'maxHostConnections' => 0 < $maxHostConnections ? $maxHostConnections : PHP_INT_MAX,
             'responseCount' => 0,
             'dnsCache' => [],
             'handles' => [],

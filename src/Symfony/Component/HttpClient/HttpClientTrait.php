@@ -97,7 +97,6 @@ trait HttpClientTrait
         // Finalize normalization of options
         $options['headers'] = $headers;
         $options['http_version'] = (string) ($options['http_version'] ?? '');
-        $options['timeout'] = (float) ($options['timeout'] ?? ini_get('default_socket_timeout'));
 
         return [$url, $options];
     }
@@ -120,7 +119,9 @@ trait HttpClientTrait
         // Option "query" is never inherited from defaults
         $options['query'] = $options['query'] ?? [];
 
-        $options += $defaultOptions;
+        foreach ($defaultOptions as $k => $v) {
+            $options[$k] = $options[$k] ?? $v;
+        }
 
         if ($defaultOptions['resolve'] ?? false) {
             $options['resolve'] += array_change_key_case($defaultOptions['resolve']);
