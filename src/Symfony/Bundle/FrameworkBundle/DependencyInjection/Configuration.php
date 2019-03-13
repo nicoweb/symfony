@@ -22,6 +22,7 @@ use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\Form\Form;
+use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\Lock\Lock;
 use Symfony\Component\Lock\Store\SemaphoreStore;
@@ -1179,7 +1180,7 @@ class Configuration implements ConfigurationInterface
             ->children()
                 ->arrayNode('http_client')
                     ->info('HTTP Client configuration')
-                    ->canBeEnabled()
+                    ->{!class_exists(FullStack::class) && class_exists(HttpClient::class) ? 'canBeDisabled' : 'canBeEnabled'}()
                     ->fixXmlConfig('client')
                     ->children();
 
@@ -1219,6 +1220,18 @@ class Configuration implements ConfigurationInterface
                     ->arrayNode('query')
                         ->info('Associative array of query string values merged with URL parameters.')
                         ->useAttributeAsKey('key')
+                        ->beforeNormalization()
+                            ->always(function ($config) {
+                                if (!\is_array($config)) {
+                                    return [];
+                                }
+                                if (!isset($config['key'])) {
+                                    return $config;
+                                }
+
+                                return [$config['key'] => $config['value']];
+                            })
+                        ->end()
                         ->normalizeKeys(false)
                         ->scalarPrototype()->end()
                     ->end()
@@ -1243,6 +1256,18 @@ class Configuration implements ConfigurationInterface
                     ->arrayNode('resolve')
                         ->info('Associative array: domain => IP.')
                         ->useAttributeAsKey('host')
+                        ->beforeNormalization()
+                            ->always(function ($config) {
+                                if (!\is_array($config)) {
+                                    return [];
+                                }
+                                if (!isset($config['host'])) {
+                                    return $config;
+                                }
+
+                                return [$config['host'] => $config['value']];
+                            })
+                        ->end()
                         ->normalizeKeys(false)
                         ->scalarPrototype()->end()
                     ->end()
@@ -1284,9 +1309,12 @@ class Configuration implements ConfigurationInterface
                     ->end()
                     ->arrayNode('peer_fingerprint')
                         ->info('Associative array: hashing algorithm => hash(es).')
-                        ->useAttributeAsKey('algo')
                         ->normalizeKeys(false)
-                        ->variablePrototype()->end()
+                        ->children()
+                            ->variableNode('sha1')->end()
+                            ->variableNode('pin-sha256')->end()
+                            ->variableNode('md5')->end()
+                        ->end()
                     ->end()
                 ->end()
             ->end()
